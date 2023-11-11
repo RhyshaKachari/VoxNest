@@ -1,4 +1,6 @@
+import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 import 'pallete.dart';
 import 'feature_box.dart';
 class HomePage extends StatefulWidget {
@@ -9,7 +11,49 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final speechToText = SpeechToText();
+  bool speechEnabled = false;
+  String lastWords = '';
+
   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    initSpeechToText();
+  }
+
+  Future<void>initSpeechToText() async{
+  await speechToText.initialize();
+  setState(() {});
+  }
+
+  Future<void> startListening() async {
+    await speechToText.listen(onResult: onSpeechResult);
+    setState(() {});
+  }
+
+  /// Manually stop the active speech recognition session
+  /// Note that there are also timeouts that each platform enforces
+  /// and the SpeechToText plugin supports setting timeouts on the
+  /// listen method.
+  Future<void> stopListening() async {
+    await speechToText.stop();
+    setState(() {});
+  }
+
+  /// This is the callback that the SpeechToText plugin calls when
+  /// the platform returns recognized words.
+  void onSpeechResult(SpeechRecognitionResult result) {
+    setState(() {
+      lastWords = result.recognizedWords;
+    });
+  }
+
+  void dispose(){
+    super.dispose();
+    speechToText.stop();
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -65,7 +109,7 @@ class _HomePageState extends State<HomePage> {
                 vertical: 10.0
               ),
               child: Text(
-                'Good Morning , what task can I do for you?',
+                'Hello, what task can I do for you?',
                 style: TextStyle(
                   fontFamily: 'Cera Pro',
                   color: Pallete.mainFontColor,
@@ -115,7 +159,17 @@ class _HomePageState extends State<HomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Pallete.secondSuggestionBoxColor,
-          onPressed: (){},
+          onPressed: () async{
+          if(await speechToText.hasPermission && speechToText.isNotListening){
+           await startListening();
+          }
+          else if(speechToText.isListening){
+           await stopListening();
+          }
+          else{
+            initSpeechToText();
+          }
+          },
         child: const Icon(Icons.mic),
       ) ,
     );
